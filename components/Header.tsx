@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { User } from '../types';
-import { logoUrl } from '../logo';
+import logoUrl from '../AIFirst_Logo.png';
 
 interface HeaderProps {
   user: User;

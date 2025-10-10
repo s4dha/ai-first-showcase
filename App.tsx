@@ -8,7 +8,8 @@ import Dashboard from './components/Dashboard';
 import Scanner from './components/Scanner';
 import ProfilePage from './components/ProfilePage';
 import Spinner from './components/Spinner';
-import { logoUrl } from './logo';
+import logoUrl from '../AIFirst_Logo.png';
+
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
