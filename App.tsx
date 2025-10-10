@@ -8,8 +8,10 @@ import Dashboard from './components/Dashboard';
 import Scanner from './components/Scanner';
 import ProfilePage from './components/ProfilePage';
 import Spinner from './components/Spinner';
-import logoUrl from '../AIFirst_Logo.png';
 
+// ✅ Put AIFirst_Logo.png in /public (project root)
+//    Path on web becomes /AIFirst_Logo.png (case-sensitive on Vercel)
+const LOGO_SRC = '/AIFirst_Logo.png';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -39,12 +41,11 @@ const App: React.FC = () => {
   }, [location.pathname, user, refreshData]);
 
   useEffect(() => {
-    const favicon = document.getElementById('favicon') as HTMLLinkElement;
+    const favicon = document.getElementById('favicon') as HTMLLinkElement | null;
     if (favicon) {
-      favicon.href = logoUrl;
+      favicon.href = LOGO_SRC;
     }
   }, []);
-
 
   const handleLogin = (name: string, division: Division) => {
     const newUser = dataService.loginUser(name, division);
@@ -105,7 +106,6 @@ const MainLayout: React.FC<{ user: User; onLogout: () => void }> = ({ user, onLo
   );
 };
 
-
 interface LoginPageProps {
   onLogin: (name: string, division: Division) => void;
 }
@@ -124,7 +124,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 to-indigo-900 p-4">
       <div className="w-full max-w-md bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-gray-700">
-        <img src={logoUrl} alt="SCG AI-First Showcase Logo" className="w-32 h-32 mx-auto mb-4" />
+        <img src={LOGO_SRC} alt="SCG AI-First Showcase Logo" className="w-32 h-32 mx-auto mb-4" />
         <h1 className="text-4xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400 mb-2">
           SCG AI-First Showcase Passport
         </h1>
