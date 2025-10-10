@@ -1,0 +1,7 @@
+{
+  "name": "SCG AI-First Showcase Passport V1",
+  "description": "An interactive web application for GovTech's AI-first showcase to engage staff, collect feedback on demos, and track participation through a gamified leaderboard.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
