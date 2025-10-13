@@ -169,21 +169,26 @@ const Scanner: React.FC<ScannerProps> = ({ user }) => {
     }
   }, [mode, user]);
 
-  const handleFeedbackSubmit = (rating: number, feedback: string) => {
+  const handleFeedbackSubmit = async (rating: number, feedback: string) => {
     if (scannedBoothId) {
-      const userVisits = dataService.getAllVisits().filter(v => v.userName === user.name);
-      const oldUniqueBooths = new Set(userVisits.map(v => v.boothId));
+      try {
+        const allVisits = await dataService.getAllVisits();
+        const userVisits = allVisits.filter(v => v.userName === user.name);
+        const oldUniqueBooths = new Set(userVisits.map(v => v.boothId));
 
-      dataService.addVisit({
-        boothId: scannedBoothId,
-        rating,
-        feedback,
-      });
+        await dataService.addVisit({
+          boothId: scannedBoothId,
+          rating,
+          feedback,
+        });
 
-      const newUniqueBooths = new Set([...oldUniqueBooths, scannedBoothId]);
-      const prizeWon = oldUniqueBooths.size < PRIZE_THRESHOLD && newUniqueBooths.size >= PRIZE_THRESHOLD;
-      
-      navigate('/', { state: { prizeWon } });
+        const newUniqueBooths = new Set([...oldUniqueBooths, scannedBoothId]);
+        const prizeWon = oldUniqueBooths.size < PRIZE_THRESHOLD && newUniqueBooths.size >= PRIZE_THRESHOLD;
+        
+        navigate('/', { state: { prizeWon } });
+      } catch (error) {
+        console.error("Error submitting feedback:", error);
+      }
     }
   };
 
