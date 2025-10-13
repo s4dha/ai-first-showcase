@@ -73,6 +73,8 @@ export const getAllVisits = async (): Promise<Visit[]> => {
   return out.sort((a,b)=>a.timestamp-b.timestamp);
 };
 
+
+
 // use your Visit shape directly
 export const addVisit = async (
   visit: Omit<Visit, "userName" | "division" | "timestamp">
@@ -120,4 +122,21 @@ export const addVisit = async (
     feedback: visit.feedback,
     timestamp: Date.now(),
   };
+};
+
+export const getAllVisitsGlobal = async (): Promise<Visit[]> => {
+  const snaps = await getDocs(query(collection(db, "visits")));
+  const out: Visit[] = [];
+  snaps.forEach(d => {
+    const v = d.data() as any;
+    out.push({
+      userName: v.fullName,
+      division: v.divisionCode,
+      boothId: v.boothId,
+      rating: v.rating ?? 0,
+      feedback: v.feedback ?? "",
+      timestamp: v.timestamp?.toMillis ? v.timestamp.toMillis() : Date.now(),
+    });
+  });
+  return out;
 };

@@ -9,9 +9,6 @@ interface LeaderboardProps {
 }
 
 const Leaderboard: React.FC<LeaderboardProps> = ({ visits, currentUser }) => {
-  // FIX: Explicitly typing the 'acc' (accumulator) parameter in the reduce function allows
-  // TypeScript to correctly infer the return type of `visitorData`. This resolves the issue
-  // where `v` in the subsequent `.map()` was of type `unknown`, causing the errors.
   const visitorData = visits.reduce((acc: Record<string, { name: string; division: Division; booths: Set<string> }>, visit) => {
     if (!acc[visit.userName]) {
       acc[visit.userName] = { name: visit.userName, division: visit.division, booths: new Set<string>() };
