@@ -1,7 +1,8 @@
 import { db, ensureAnonLogin, now } from "./firebase";
 import {
   doc, setDoc, getDoc, updateDoc,
-  collection, addDoc, getDocs, query, where, increment
+  collection, addDoc, getDocs, query, where, increment,
+  runTransaction
 } from "firebase/firestore";
 import type { Division, User, Visit } from "../types";
 
@@ -80,21 +81,37 @@ export const addVisit = async (
   if (!user) throw new Error("No user is logged in.");
   const id = userKey(user.name, user.division);
 
-  // 1) create visit row (with rating + feedback)
-  await addDoc(collection(db, "visits"), {
-    userId: id,
-    fullName: user.name,
-    divisionCode: user.division,
-    boothId: visit.boothId,
-    rating: visit.rating,
-    feedback: visit.feedback,
-    timestamp: now(),
+  // deterministic doc id so one document per (user,booth)
+  const visitDocId = `${id}::${visit.boothId}`;
+  const visitRef = doc(db, "visits", visitDocId);
+  const boothRef = doc(db, "booths", visit.boothId);
+
+  await runTransaction(db, async (tx) => {
+    const visitSnap = await tx.get(visitRef);
+    if (visitSnap.exists()) {
+      // existing -> update feedback/rating/timestamp, do NOT increment booth counter
+      tx.update(visitRef, {
+        rating: visit.rating,
+        feedback: visit.feedback,
+        timestamp: now(),
+      });
+    } else {
+      // first visit -> create visit doc AND increment booth counter
+      tx.set(visitRef, {
+        userId: id,
+        fullName: user.name,
+        divisionCode: user.division,
+        boothId: visit.boothId,
+        rating: visit.rating,
+        feedback: visit.feedback,
+        timestamp: now(),
+      });
+      // create or merge booth doc, increment countersafe for concurrency
+      tx.set(boothRef, { visitCount: increment(1) }, { merge: true });
+    }
   });
 
-  // 2) increment booth live counter
-  const boothRef = doc(db, "booths", visit.boothId);
-  await setDoc(boothRef, { visitCount: increment(1) }, { merge: true });
-
+  // return a Visit object for client usage (timestamp here is client now; server timestamp lives in Firestore)
   return {
     userName: user.name,
     division: user.division,
