@@ -1,22 +1,17 @@
 import React, { useState } from 'react';
+import * as dataService from '../services/dataService'; // ← add this import
 
 interface FeedbackModalProps {
   boothId: string;
-  onSubmit: (rating: number, feedback: string) => void; // parent writes to Firestore
+  onSubmit?: (rating: number, feedback: string) => void; // now optional, called after save
   onClose: () => void;
 }
 
-const Star: React.FC<{
-  filled: boolean;
-  onClick: () => void;
-  onMouseEnter: () => void;
-}> = ({ filled, onClick, onMouseEnter }) => (
+const Star: React.FC<{ filled: boolean; onClick: () => void; onMouseEnter: () => void }> = ({ filled, onClick, onMouseEnter }) => (
   <svg
     onClick={onClick}
     onMouseEnter={onMouseEnter}
-    className={`w-10 h-10 cursor-pointer transition-transform transform hover:scale-125 ${
-      filled ? 'text-yellow-400' : 'text-gray-600'
-    }`}
+    className={`w-10 h-10 cursor-pointer transition-transform transform hover:scale-125 ${filled ? 'text-yellow-400' : 'text-gray-600'}`}
     fill="currentColor"
     viewBox="0 0 20 20"
   >
@@ -28,36 +23,49 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ boothId, onSubmit, onClos
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [feedback, setFeedback] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (rating > 0) {
-      onSubmit(rating, feedback); // parent handles Firestore write
+    if (rating <= 0 || isSubmitting) return;
+
+    try {
+      setIsSubmitting(true);
+      setErr(null);
+
+      // 🔥 write to Firestore using your dataService
+      await dataService.addVisit({ boothId, rating, feedback });
+
+      // optional callback for parent (backwards compatible with your old prop)
+      onSubmit?.(rating, feedback);
+
+      // close the modal
+      onClose();
+    } catch (e: any) {
+      console.error(e);
+      setErr(e?.message ?? 'Failed to submit feedback. Please try again.');
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4"
-      onClick={onClose}
+      onClick={() => { if (!isSubmitting) onClose(); }}
     >
       <div
         className="relative bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-8 border border-gray-700"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+          disabled={isSubmitting}
+          className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors disabled:opacity-50"
           aria-label="Close feedback form"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
@@ -98,12 +106,16 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ boothId, onSubmit, onClos
             />
           </div>
 
+          {err && (
+            <p className="text-red-400 text-sm">{err}</p>
+          )}
+
           <button
             type="submit"
-            disabled={rating === 0}
+            disabled={rating === 0 || isSubmitting}
             className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-gray-900 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors"
           >
-            Submit Feedback
+            {isSubmitting ? 'Submitting…' : 'Submit Feedback'}
           </button>
         </form>
       </div>
