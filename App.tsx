@@ -13,23 +13,28 @@ import Spinner from './components/Spinner';
 const LOGO_SRC = '/AIFirst_Logo.png';
 
 const App: React.FC = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [allVisits, setAllVisits] = useState<Visit[]>([]);
+const [user, setUser] = useState<User | null>(null);
+const [myVisits, setMyVisits] = useState<Visit[]>([]);
+const [allVisits, setAllVisits] = useState<Visit[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // fetch visits for the CURRENT user
-  const refreshData = useCallback(async () => {
-    try {
-      const visits = await dataService.getAllVisits(); // ← async now
-      setAllVisits(visits || []);
-    } catch (e: any) {
-      console.error(e);
-      setError(e?.message ?? 'Failed to load visits');
-    }
-  }, []);
+
+// load both: my visits (for Profile/Dashboard cards) and all visits (for Leaderboard)
+const refreshData = useCallback(async () => {
+  try {
+    const mine = await dataService.getAllVisits();          // your existing per-user loader
+    const all  = await dataService.getAllVisitsGlobal();    // NEW: everyone
+    setMyVisits(mine || []);
+    setAllVisits(all || []);
+  } catch (e: any) {
+    console.error(e);
+    setError(e?.message ?? 'Failed to load visits');
+  }
+}, []);
 
   // initial load: get cached user, then fetch visits
   useEffect(() => {
