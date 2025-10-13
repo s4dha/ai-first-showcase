@@ -10,54 +10,78 @@ import ProfilePage from './components/ProfilePage';
 import Spinner from './components/Spinner';
 
 // ✅ Put AIFirst_Logo.png in /public (project root)
-//    Path on web becomes /AIFirst_Logo.png (case-sensitive on Vercel)
 const LOGO_SRC = '/AIFirst_Logo.png';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [allVisits, setAllVisits] = useState<Visit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
-  const refreshData = useCallback(() => {
-    setAllVisits(dataService.getAllVisits());
+  // fetch visits for the CURRENT user
+  const refreshData = useCallback(async () => {
+    try {
+      const visits = await dataService.getAllVisits(); // ← async now
+      setAllVisits(visits || []);
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message ?? 'Failed to load visits');
+    }
   }, []);
 
+  // initial load: get cached user, then fetch visits
   useEffect(() => {
-    const loggedInUser = dataService.getCurrentUser();
-    if (loggedInUser) {
-      setUser(loggedInUser);
-      refreshData();
-    }
-    setIsLoading(false);
+    (async () => {
+      try {
+        const loggedInUser = await dataService.getCurrentUser(); // ← async now
+        if (loggedInUser) {
+          setUser(loggedInUser);
+          await refreshData();
+        }
+      } catch (e: any) {
+        console.error(e);
+        setError(e?.message ?? 'Failed to initialize');
+      } finally {
+        setIsLoading(false);
+      }
+    })();
   }, [refreshData]);
-  
-  // Refresh data on navigation to ensure UI is always up-to-date
+
+  // refresh on route change while logged in
   useEffect(() => {
     if (user) {
       refreshData();
     }
   }, [location.pathname, user, refreshData]);
 
+  // set favicon
   useEffect(() => {
     const favicon = document.getElementById('favicon') as HTMLLinkElement | null;
-    if (favicon) {
-      favicon.href = LOGO_SRC;
-    }
+    if (favicon) favicon.href = LOGO_SRC;
   }, []);
 
-  const handleLogin = (name: string, division: Division) => {
-    const newUser = dataService.loginUser(name, division);
-    setUser(newUser);
-    refreshData();
-    navigate('/');
+  const handleLogin = async (name: string, division: Division) => {
+    try {
+      const newUser = await dataService.loginUser(name, division); // ← await
+      setUser(newUser);
+      await refreshData();
+      navigate('/');
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message ?? 'Login failed');
+    }
   };
 
-  const handleLogout = () => {
-    dataService.logoutUser();
-    setUser(null);
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await dataService.logoutUser?.(); // if you kept it sync it still works
+    } finally {
+      setUser(null);
+      setAllVisits([]);
+      navigate('/');
+    }
   };
 
   if (isLoading) {
@@ -68,23 +92,47 @@ const App: React.FC = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900 text-red-300">
+        <div className="max-w-lg p-6 bg-gray-800 rounded-xl border border-gray-700">
+          <p className="font-semibold mb-2">Something went wrong</p>
+          <pre className="text-sm whitespace-pre-wrap">{error}</pre>
+          <button
+            className="mt-4 px-4 py-2 rounded bg-indigo-600 text-white"
+            onClick={() => { setError(null); window.location.reload(); }}
+          >
+            Reload
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Routes>
       {user ? (
         <Route path="/" element={<MainLayout user={user} onLogout={handleLogout} />}>
-          <Route index element={
-            <Dashboard 
-              user={user}
-              userVisits={allVisits.filter(v => v.userName === user.name)}
-              allVisits={allVisits}
-            />
-          } />
-          <Route path="profile" element={
-             <ProfilePage
+          <Route
+            index
+            element={
+              <Dashboard
+                user={user}
+                // getAllVisits already returns only this user's visits, but keeping this is harmless
+                userVisits={allVisits.filter(v => v.userName === user.name)}
+                allVisits={allVisits}
+              />
+            }
+          />
+          <Route
+            path="profile"
+            element={
+              <ProfilePage
                 user={user}
                 userVisits={allVisits.filter(v => v.userName === user.name)}
-             />
-          } />
+              />
+            }
+          />
           <Route path="scan" element={<Scanner user={user} />} />
         </Route>
       ) : (
@@ -94,7 +142,6 @@ const App: React.FC = () => {
   );
 };
 
-// Layout component for authenticated routes
 const MainLayout: React.FC<{ user: User; onLogout: () => void }> = ({ user, onLogout }) => {
   return (
     <div className="min-h-screen bg-gray-900 text-gray-200 font-sans">
@@ -116,9 +163,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim()) {
-      onLogin(name.trim(), division);
-    }
+    if (name.trim()) onLogin(name.trim(), division);
   };
 
   return (
@@ -131,9 +176,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         <p className="text-center text-gray-400 mb-8">Log your journey, share your thoughts.</p>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-300">
-              Full Name
-            </label>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-300">Full Name</label>
             <input
               id="name"
               type="text"
@@ -145,9 +188,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             />
           </div>
           <div>
-            <label htmlFor="division" className="block text-sm font-medium text-gray-300">
-              Division
-            </label>
+            <label htmlFor="division" className="block text-sm font-medium text-gray-300">Division</label>
             <select
               id="division"
               value={division}
@@ -155,9 +196,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
             >
               {DIVISIONS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
+                <option key={d} value={d}>{d}</option>
               ))}
             </select>
           </div>
