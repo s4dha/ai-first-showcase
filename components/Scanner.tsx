@@ -249,13 +249,8 @@ const Scanner: React.FC<ScannerProps> = ({ user }) => {
     <div className="fixed inset-0 bg-gray-900 bg-opacity-90 flex flex-col items-center justify-center z-50 p-4">
       <div className="relative w-full max-w-lg bg-gray-800 rounded-2xl shadow-2xl p-6 border border-gray-700">
         <h2 className="text-2xl font-bold text-center text-purple-400 mb-4">
-          {mode === 'scan' ? 'Visit Booth' : 'My Passport QR'}
+          {mode === 'scan' ? 'Scan Booth QR' : 'My Passport QR'}
         </h2>
-
-        <div className="flex justify-center mb-4 rounded-lg bg-gray-900 p-1">
-          <button onClick={() => setMode('scan')} className={`w-1/2 py-2 text-sm font-medium rounded-md transition-colors ${mode === 'scan' ? 'bg-indigo-600 text-white shadow' : 'text-gray-300 hover:bg-gray-700'}`}>Scan Booth QR</button>
-          <button onClick={() => setMode('display')} className={`w-1/2 py-2 text-sm font-medium rounded-md transition-colors ${mode === 'display' ? 'bg-indigo-600 text-white shadow' : 'text-gray-300 hover:bg-gray-700'}`}>Show My QR</button>
-        </div>
 
         <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-900 flex items-center justify-center">
           {mode === 'scan' ? (

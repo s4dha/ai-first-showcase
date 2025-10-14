@@ -189,14 +189,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, userVisits, onUserUpdat
           <h4 className="text-xl font-semibold text-purple-400 border-b border-gray-700 pb-3">Activity Summary</h4>
           <div className="flex flex-col md:flex-row items-center justify-around gap-8 text-center">
             <div>
-              <p className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-300">
+              <p className="text-5xl mb-4 font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-300">
                 {uniqueBoothsVisitedCount}
               </p>
               <p className="text-sm text-gray-400 tracking-wider uppercase">Booths Visited</p>
             </div>
             <div>
-              <p className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-cyan-400">
-                {hasPrize ? "🏆" : "🤔"}
+              <p className="text-5xl font-bold mb-4">
+                <span className={hasPrize ? 'text-yellow-400' : 'text-gray-400'}>
+                  {hasPrize ? "🏆" : "🤔"}
+                </span>
               </p>
               <p className="text-sm text-gray-400 tracking-wider uppercase">Prize Status</p>
             </div>

@@ -54,16 +54,34 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ visits, currentUser }) => {
     {}
   );
 
+  // Aggregate per booth: boothId -> { boothId, visitors: Set<string> }
+  const boothData = flatVisits.reduce(
+    (acc: Record<string, { boothId: string; visitors: Set<string> }>, visit) => {
+      if (!acc[visit.boothId]) {
+        acc[visit.boothId] = { boothId: visit.boothId, visitors: new Set<string>() };
+      }
+      acc[visit.boothId].visitors.add(visit.userName);
+      return acc;
+    },
+    {}
+  );
+
   const sortedVisitors = Object.values(visitorData)
     .map((v) => ({ ...v, count: v.booths.size }))
     .sort((a, b) => b.count - a.count);
 
+  const sortedBooths = Object.values(boothData)
+    .map((b) => ({ ...b, count: b.visitors.size }))
+    .sort((a, b) => b.count - a.count);
+
   const topVisitors = sortedVisitors.slice(0, 5);
+  const topBooths = sortedBooths.slice(0, 5);
   const prizeWinners = sortedVisitors.filter((v) => v.count >= PRIZE_THRESHOLD);
   const totalParticipants = new Set(flatVisits.map((v) => v.userName)).size;
 
   return (
     <div className="space-y-8">
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
         <div className="bg-gray-700/50 p-4 rounded-lg">
           <p className="text-4xl font-bold text-indigo-400">{totalParticipants}</p>
@@ -79,7 +97,36 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ visits, currentUser }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      {/* Main 3-column layout */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* --- Left: Top 5 Booths --- */}
+        <div>
+          <h4 className="text-lg font-semibold text-gray-300 mb-4">Top 5 Booths</h4>
+          {topBooths.length > 0 ? (
+            <ul className="space-y-3">
+              {topBooths.map((booth, index) => (
+                <li
+                  key={booth.boothId}
+                  className="flex items-center justify-between p-3 rounded-md bg-gray-700/50"
+                >
+                  <div className="flex items-center space-x-4">
+                    <span className="font-bold text-lg text-gray-400">{index + 1}</span>
+                    <div>
+                      <p className="font-medium text-white">{booth.boothId}</p>
+                    </div>
+                  </div>
+                  <span className="font-bold text-lg text-purple-400">
+                    {booth.count} {booth.count === 1 ? 'visitor' : 'visitors'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500 text-center py-4">No booth visits yet.</p>
+          )}
+        </div>
+
+        {/* --- Middle: Top 5 Visitors --- */}
         <div>
           <h4 className="text-lg font-semibold text-gray-300 mb-4">Top 5 Visitors</h4>
           {topVisitors.length > 0 ? (
@@ -107,6 +154,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ visits, currentUser }) => {
           )}
         </div>
 
+        {/* --- Right: Prize Winners --- */}
         <div>
           <h4 className="text-lg font-semibold text-gray-300 mb-4">Prize Winners ({`>= ${PRIZE_THRESHOLD} booths`})</h4>
           {prizeWinners.length > 0 ? (
