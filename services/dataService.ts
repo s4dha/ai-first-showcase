@@ -58,19 +58,27 @@ export const getAllVisits = async (): Promise<Visit[]> => {
   const q = query(collection(db, "visits"), where("userId", "==", id));
   const snaps = await getDocs(q);
 
-  const out: Visit[] = [];
-  snaps.forEach(d => {
+  const dedup = new Map<string, Visit>();
+
+  snaps.forEach((d) => {
     const v = d.data() as any;
-    out.push({
+    const key = `${v.userId}::${v.boothId}`;
+    const visit: Visit = {
       userName: v.fullName,
       division: v.divisionCode,
       boothId: v.boothId,
       rating: v.rating ?? 0,
       feedback: v.feedback ?? "",
       timestamp: v.timestamp?.toMillis ? v.timestamp.toMillis() : Date.now(),
-    });
+    };
+    // Keep the latest by timestamp if duplicates somehow exist
+    const existing = dedup.get(key);
+    if (!existing || visit.timestamp > existing.timestamp) {
+      dedup.set(key, visit);
+    }
   });
-  return out.sort((a,b)=>a.timestamp-b.timestamp);
+
+  return Array.from(dedup.values()).sort((a, b) => a.timestamp - b.timestamp);
 };
 
 
@@ -125,18 +133,26 @@ export const addVisit = async (
 };
 
 export const getAllVisitsGlobal = async (): Promise<Visit[]> => {
-  const snaps = await getDocs(query(collection(db, "visits")));
-  const out: Visit[] = [];
-  snaps.forEach(d => {
+  const snaps = await getDocs(collection(db, "visits"));
+
+  const dedup = new Map<string, Visit>();
+
+  snaps.forEach((d) => {
     const v = d.data() as any;
-    out.push({
+    const key = `${v.userId}::${v.boothId}`;
+    const visit: Visit = {
       userName: v.fullName,
       division: v.divisionCode,
       boothId: v.boothId,
       rating: v.rating ?? 0,
       feedback: v.feedback ?? "",
       timestamp: v.timestamp?.toMillis ? v.timestamp.toMillis() : Date.now(),
-    });
+    };
+    const existing = dedup.get(key);
+    if (!existing || visit.timestamp > existing.timestamp) {
+      dedup.set(key, visit);
+    }
   });
-  return out;
+
+  return Array.from(dedup.values()).sort((a, b) => a.timestamp - b.timestamp);
 };
