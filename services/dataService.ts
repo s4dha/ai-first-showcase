@@ -1,10 +1,11 @@
 import { db, ensureAnonLogin, now } from "./firebase";
 import {
   doc, setDoc, getDoc, updateDoc,
-  collection, addDoc, getDocs, query, where, increment,
-  runTransaction
+  collection, getDocs, query, where, increment,
+  runTransaction, deleteDoc
 } from "firebase/firestore";
 import type { Division, User, Visit } from "../types";
+import { BOOTH_IDS } from "../constants";
 
 const USER_CACHE_KEY = "showcase_user_cache";
 
@@ -49,110 +50,309 @@ export const getCurrentUser = async (): Promise<User | null> => {
   return cached ? JSON.parse(cached) : null;
 };
 
-// ---------- visits ----------
-export const getAllVisits = async (): Promise<Visit[]> => {
-  const user = await getCurrentUser();
-  if (!user) return [];
-  const id = userKey(user.name, user.division);
+// Add this function to your dataService file
 
-  const q = query(collection(db, "visits"), where("userId", "==", id));
-  const snaps = await getDocs(q);
-
-  const dedup = new Map<string, Visit>();
-
-  snaps.forEach((d) => {
-    const v = d.data() as any;
-    const key = `${v.userId}::${v.boothId}`;
-    const visit: Visit = {
-      userName: v.fullName,
-      division: v.divisionCode,
-      boothId: v.boothId,
-      rating: v.rating ?? 0,
-      feedback: v.feedback ?? "",
-      timestamp: v.timestamp?.toMillis ? v.timestamp.toMillis() : Date.now(),
+export const updateUser = async (oldName: string, oldDivision: Division, newName: string, newDivision: Division): Promise<User> => {
+  // Delete old user document
+  const oldUserId = userKey(oldName, oldDivision);
+  const oldUserRef = doc(db, "users", oldUserId);
+  
+  // Create new user document
+  const newUserId = userKey(newName, newDivision);
+  const newUserRef = doc(db, "users", newUserId);
+  
+  // Get the old user data
+  const oldUserSnap = await getDoc(oldUserRef);
+  let userData: any = {
+    fullName: newName,
+    divisionCode: newDivision,
+    uid: await ensureAnonLogin(),
+    lastLoginAt: now(),
+  };
+  
+  if (oldUserSnap.exists()) {
+    const oldData = oldUserSnap.data();
+    userData = {
+      ...oldData,
+      fullName: newName,
+      divisionCode: newDivision,
+      uid: oldData.uid || (await ensureAnonLogin()),
+      lastLoginAt: now(),
     };
-    // Keep the latest by timestamp if duplicates somehow exist
-    const existing = dedup.get(key);
-    if (!existing || visit.timestamp > existing.timestamp) {
-      dedup.set(key, visit);
+  } else {
+    userData.createdAt = now();
+  }
+  
+  // Delete old document if name/division changed
+  if (oldUserId !== newUserId) {
+    await deleteDoc(oldUserRef);
+  }
+  
+  // Save new document
+  await setDoc(newUserRef, userData);
+  
+  // Update user visits document
+  const oldVisitRef = doc(db, "userVisits", oldUserId);
+  const newVisitRef = doc(db, "userVisits", newUserId);
+  
+  const visitSnap = await getDoc(oldVisitRef);
+  if (visitSnap.exists()) {
+    const visitData = visitSnap.data();
+    const updatedVisitData = {
+      ...visitData,
+      userId: newUserId,
+      name: newName,
+      division: newDivision,
+    };
+    
+    // Delete old and create new if ID changed
+    if (oldUserId !== newUserId) {
+      await deleteDoc(oldVisitRef);
+      await setDoc(newVisitRef, updatedVisitData);
+    } else {
+      // Just update if same ID
+      await updateDoc(oldVisitRef, updatedVisitData);
     }
-  });
-
-  return Array.from(dedup.values()).sort((a, b) => a.timestamp - b.timestamp);
+  }
+  
+  // Update local storage
+  const user: User = { name: newName, division: newDivision };
+  localStorage.setItem(USER_CACHE_KEY, JSON.stringify(user));
+  
+  return user;
 };
 
+// ---------- new visit architecture ----------
+export interface BoothVisit {
+  rating?: number;
+  feedback?: string;
+  timestamp?: number;
+}
 
+export interface UserVisitsDoc {
+  userId: string;
+  name: string;
+  division: string;
+  booths: Record<string, BoothVisit>;
+  visitedCount: number;
+  prizeWon: boolean;
+  updatedAt: number;
+}
 
-// use your Visit shape directly
+// Get all visits for current user
+export const getUserVisits = async (): Promise<UserVisitsDoc | null> => {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  
+  const userId = userKey(user.name, user.division);
+  const visitRef = doc(db, "userVisits", userId);
+  const snap = await getDoc(visitRef);
+  
+  if (!snap.exists()) {
+    // Initialize empty visits doc
+    const newDoc: UserVisitsDoc = {
+      userId,
+      name: user.name,
+      division: user.division,
+      booths: {},
+      visitedCount: 0,
+      prizeWon: false,
+      updatedAt: Date.now()
+    };
+    await setDoc(visitRef, newDoc);
+    return newDoc;
+  }
+  
+  return snap.data() as UserVisitsDoc;
+};
+
+// Add or update a booth visit
 export const addVisit = async (
-  visit: Omit<Visit, "userName" | "division" | "timestamp">
-): Promise<Visit> => {
+  boothId: string,
+  rating: number,
+  feedback: string
+): Promise<UserVisitsDoc> => {
   const user = await getCurrentUser();
   if (!user) throw new Error("No user is logged in.");
-  const id = userKey(user.name, user.division);
-
-  // deterministic doc id so one document per (user,booth)
-  const visitDocId = `${id}::${visit.boothId}`;
-  const visitRef = doc(db, "visits", visitDocId);
-  const boothRef = doc(db, "booths", visit.boothId);
-
+  
+  const userId = userKey(user.name, user.division);
+  const visitRef = doc(db, "userVisits", userId);
+  
+  // Verify boothId is valid
+  if (!BOOTH_IDS.includes(boothId)) {
+    throw new Error("Invalid booth ID");
+  }
+  
+  let result: UserVisitsDoc | undefined;
+  
   await runTransaction(db, async (tx) => {
+    // Get current user visits doc
     const visitSnap = await tx.get(visitRef);
-    if (visitSnap.exists()) {
-      // existing -> update feedback/rating/timestamp, do NOT increment booth counter
-      tx.update(visitRef, {
-        rating: visit.rating,
-        feedback: visit.feedback,
-        timestamp: now(),
-      });
+    let visitDoc: UserVisitsDoc;
+    
+    if (!visitSnap.exists()) {
+      // Initialize new visits doc
+      visitDoc = {
+        userId,
+        name: user.name,
+        division: user.division,
+        booths: {},
+        visitedCount: 0,
+        prizeWon: false,
+        updatedAt: Date.now()
+      };
     } else {
-      // first visit -> create visit doc AND increment booth counter
-      tx.set(visitRef, {
-        userId: id,
-        fullName: user.name,
-        divisionCode: user.division,
-        boothId: visit.boothId,
-        rating: visit.rating,
-        feedback: visit.feedback,
-        timestamp: now(),
-      });
-      // create or merge booth doc, increment countersafe for concurrency
-      tx.set(boothRef, { visitCount: increment(1) }, { merge: true });
+      visitDoc = visitSnap.data() as UserVisitsDoc;
     }
+    
+    // Check if this is a new booth visit
+    const isNewVisit = !visitDoc.booths[boothId];
+    
+    // Update booth visit details
+    visitDoc.booths[boothId] = {
+      rating,
+      feedback,
+      timestamp: Date.now()
+    };
+    
+    // Update visit count if new booth
+    if (isNewVisit) {
+      visitDoc.visitedCount = Object.keys(visitDoc.booths).filter(boothId => 
+        visitDoc.booths[boothId].timestamp !== undefined
+      ).length;
+      
+      // Check for prize eligibility
+      visitDoc.prizeWon = visitDoc.visitedCount >= 10;
+    }
+    
+    visitDoc.updatedAt = Date.now();
+    
+    // Save user visits doc
+    tx.set(visitRef, visitDoc);
+    
+    result = visitDoc;
   });
-
-  // return a Visit object for client usage (timestamp here is client now; server timestamp lives in Firestore)
-  return {
-    userName: user.name,
-    division: user.division,
-    boothId: visit.boothId,
-    rating: visit.rating,
-    feedback: visit.feedback,
-    timestamp: Date.now(),
-  };
+  
+  if (!result) throw new Error("Transaction failed");
+  return result;
 };
 
+/// helper: normalize Firestore timestamp (number | Timestamp | { seconds, nanoseconds } | undefined) -> number (ms)
+function toMillis(ts: any): number {
+  if (ts == null) return NaN;
+  if (typeof ts === 'number') return ts;
+  if (typeof ts.toMillis === 'function') return ts.toMillis();
+  if (typeof ts.seconds === 'number') {
+    const seconds = ts.seconds;
+    const nanos = typeof ts.nanoseconds === 'number' ? ts.nanoseconds : 0;
+    return seconds * 1000 + Math.floor(nanos / 1e6);
+  }
+  return NaN;
+}
+
+// Get all visits globally (for leaderboard)
 export const getAllVisitsGlobal = async (): Promise<Visit[]> => {
-  const snaps = await getDocs(collection(db, "visits"));
+  const visits: Visit[] = [];
 
-  const dedup = new Map<string, Visit>();
+  // Get all user visits documents
+  const userVisitsSnap = await getDocs(collection(db, "userVisits"));
 
-  snaps.forEach((d) => {
-    const v = d.data() as any;
-    const key = `${v.userId}::${v.boothId}`;
-    const visit: Visit = {
-      userName: v.fullName,
-      division: v.divisionCode,
-      boothId: v.boothId,
-      rating: v.rating ?? 0,
-      feedback: v.feedback ?? "",
-      timestamp: v.timestamp?.toMillis ? v.timestamp.toMillis() : Date.now(),
-    };
-    const existing = dedup.get(key);
-    if (!existing || visit.timestamp > existing.timestamp) {
-      dedup.set(key, visit);
+  // For each user visit document, extract booth visits
+  userVisitsSnap.forEach((userDoc) => {
+    const userData = userDoc.data() as any; // narrow to any for runtime checks
+    if (!userData) return;
+
+    const booths = (userData.booths ?? {}) as Record<string, any>;
+    Object.entries(booths).forEach(([boothId, visitDataRaw]) => {
+      const visitData = visitDataRaw as any;
+      const ts = toMillis(visitData?.timestamp);
+      if (!Number.isNaN(ts)) {
+        visits.push({
+          userName: userData.name ?? 'Unknown',
+          division: userData.division ?? 'Unknown',
+          boothId,
+          rating: typeof visitData?.rating === 'number' ? visitData.rating : 0,
+          feedback: typeof visitData?.feedback === 'string' ? visitData.feedback : '',
+          timestamp: ts,
+        });
+      }
+    });
+  });
+
+  return visits;
+};
+
+// Get booth popularity data by aggregating all user visits
+export const getBoothPopularity = async (): Promise<Record<string, number>> => {
+  const popularity: Record<string, number> = {};
+
+  // Initialize all booth IDs with 0 visits
+  BOOTH_IDS.forEach(boothId => {
+    popularity[boothId] = 0;
+  });
+
+  // Get all user visits documents
+  const userVisitsSnap = await getDocs(collection(db, "userVisits"));
+
+  // For each user visit document, count booth visits
+  userVisitsSnap.forEach((userDoc) => {
+    const userData = userDoc.data() as any;
+    if (!userData) return;
+
+    const booths = (userData.booths ?? {}) as Record<string, any>;
+    Object.entries(booths).forEach(([boothId, visitDataRaw]) => {
+      const visitData = visitDataRaw as any;
+      const ts = toMillis(visitData?.timestamp);
+      if (!Number.isNaN(ts)) {
+        popularity[boothId] = (popularity[boothId] || 0) + 1;
+      }
+    });
+  });
+
+  return popularity;
+};
+
+// Get booth visitor details by filtering global visits
+export const getBoothVisitors = async (boothId: string): Promise<Visit[]> => {
+  if (!BOOTH_IDS.includes(boothId)) {
+    throw new Error("Invalid booth ID");
+  }
+
+  const visits: Visit[] = [];
+  const userVisitsSnap = await getDocs(collection(db, "userVisits"));
+
+  userVisitsSnap.forEach((userDoc) => {
+    const userData = userDoc.data() as any;
+    if (!userData) return;
+
+    const booths = (userData.booths ?? {}) as Record<string, any>;
+    const visitData = booths[boothId] as any;
+    if (!visitData) return;
+
+    const ts = toMillis(visitData?.timestamp);
+    if (!Number.isNaN(ts)) {
+      visits.push({
+        userName: userData.name ?? 'Unknown',
+        division: userData.division ?? 'Unknown',
+        boothId,
+        rating: typeof visitData?.rating === 'number' ? visitData.rating : 0,
+        feedback: typeof visitData?.feedback === 'string' ? visitData.feedback : '',
+        timestamp: ts,
+      });
     }
   });
 
-  return Array.from(dedup.values()).sort((a, b) => a.timestamp - b.timestamp);
+  return visits;
+};
+
+// Reset user visits (for testing)
+export const resetUserVisits = async (): Promise<void> => {
+  const user = await getCurrentUser();
+  if (!user) return;
+  
+  const userId = userKey(user.name, user.division);
+  const visitRef = doc(db, "userVisits", userId);
+  
+  // Delete user visits document
+  await deleteDoc(visitRef);
 };

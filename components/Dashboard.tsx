@@ -1,25 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Visit } from '../types';
+import { User } from '../types';
 import { PRIZE_THRESHOLD } from '../constants';
 import DigitalSticker from './DigitalSticker';
 import BoothVisitChart from './BoothVisitChart';
 import Leaderboard from './Leaderboard';
 import Confetti from './Confetti';
+import { UserVisitsDoc, getAllVisitsGlobal, getBoothPopularity } from '../services/dataService';
 
 interface DashboardProps {
   user: User;
-  userVisits: Visit[];
-  allVisits: Visit[];
+  userVisits: UserVisitsDoc | null;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ user, userVisits, allVisits }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, userVisits }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const uniqueBoothsVisitedCount = new Set(userVisits.map(v => v.boothId)).size;
-    const hasPrize = uniqueBoothsVisitedCount >= PRIZE_THRESHOLD;
+    
+    // Calculate unique booths visited count
+    const uniqueBoothsVisitedCount = userVisits 
+      ? Object.keys(userVisits.booths).filter(boothId => 
+          userVisits.booths[boothId].timestamp !== undefined
+        ).length 
+      : 0;
+    
+    // Check if user has won a prize
+    const hasPrize = userVisits?.prizeWon || false;
     
     const [showConfetti, setShowConfetti] = useState(location.state?.prizeWon || false);
+    const [allVisits, setAllVisits] = useState<any[]>([]);
+    const [boothPopularity, setBoothPopularity] = useState<Record<string, number>>({});
 
     useEffect(() => {
         if (location.state?.prizeWon) {
@@ -33,6 +43,23 @@ const Dashboard: React.FC<DashboardProps> = ({ user, userVisits, allVisits }) =>
         }
     }, [location.state?.prizeWon, navigate]);
 
+    // Fetch global data for charts and leaderboard
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [visits, popularity] = await Promise.all([
+                    getAllVisitsGlobal(),
+                    getBoothPopularity()
+                ]);
+                setAllVisits(visits);
+                setBoothPopularity(popularity);
+            } catch (error) {
+                console.error("Error fetching global data:", error);
+            }
+        };
+        
+        fetchData();
+    }, []);
 
     return (
         <div className="space-y-8">
@@ -46,7 +73,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, userVisits, allVisits }) =>
                                 xmlns="http://www.w3.org/2000/svg" 
                                 width="24" 
                                 height="24" 
-                                viewBox="0 0 24 24" // <-- Corrected: added the second "24"
+                                viewBox="0 0 24 24"
                                 fill="none" 
                                 stroke="currentColor" 
                                 strokeWidth="2" 
@@ -73,7 +100,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, userVisits, allVisits }) =>
                 </div>
                 <div className="md:col-span-2 bg-gray-800/50 rounded-2xl p-6 shadow-lg border border-gray-700 min-h-[300px]">
                     <h3 className="text-xl font-semibold text-purple-400 mb-4">Booth Popularity</h3>
-                    <BoothVisitChart visits={allVisits} />
+                    <BoothVisitChart popularity={boothPopularity} />
                 </div>
             </div>
             <div className="bg-gray-800/50 rounded-2xl p-6 shadow-lg border border-gray-700">

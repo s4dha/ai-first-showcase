@@ -14,7 +14,7 @@ const LOGO_SRC = '/AIFirst_Logo.png';
 
 const App: React.FC = () => {
 const [user, setUser] = useState<User | null>(null);
-const [myVisits, setMyVisits] = useState<Visit[]>([]);
+const [userVisits, setUserVisits] = useState<dataService.UserVisitsDoc | null>(null);
 const [allVisits, setAllVisits] = useState<Visit[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -23,12 +23,15 @@ const [allVisits, setAllVisits] = useState<Visit[]>([]);
   const location = useLocation();
 
 
-// load both: my visits (for Profile/Dashboard cards) and all visits (for Leaderboard)
+// load both: user visits (for Profile/Dashboard cards) and all visits (for Leaderboard)
 const refreshData = useCallback(async () => {
   try {
-    const mine = await dataService.getAllVisits();          // your existing per-user loader
-    const all  = await dataService.getAllVisitsGlobal();    // NEW: everyone
-    setMyVisits(mine || []);
+    const [visits, all] = await Promise.all([
+      dataService.getUserVisits(),
+      dataService.getAllVisitsGlobal()
+    ]);
+    
+    setUserVisits(visits);
     setAllVisits(all || []);
   } catch (e: any) {
     console.error(e);
@@ -67,6 +70,10 @@ const refreshData = useCallback(async () => {
     if (favicon) favicon.href = LOGO_SRC;
   }, []);
 
+  useEffect(() => {
+    dataService.getCurrentUser().then(setUser);
+  }, []);
+
   const handleLogin = async (name: string, division: Division) => {
     try {
       const newUser = await dataService.loginUser(name, division); // ← await
@@ -84,9 +91,14 @@ const refreshData = useCallback(async () => {
       await dataService.logoutUser?.(); // if you kept it sync it still works
     } finally {
       setUser(null);
+      setUserVisits(null);
       setAllVisits([]);
       navigate('/');
     }
+  };
+
+  const handleUserUpdate = async (name: string, division: string) => {
+    setUser({ name, division }); // Update local state immediately
   };
 
   if (isLoading) {
@@ -123,8 +135,7 @@ const refreshData = useCallback(async () => {
             element={
               <Dashboard
                 user={user}
-                // getAllVisits already returns only this user's visits, but keeping this is harmless
-                userVisits={allVisits.filter(v => v.userName === user.name)}
+                userVisits={userVisits}
                 allVisits={allVisits}
               />
             }
@@ -134,7 +145,8 @@ const refreshData = useCallback(async () => {
             element={
               <ProfilePage
                 user={user}
-                userVisits={allVisits.filter(v => v.userName === user.name)}
+                userVisits={userVisits}
+                onUserUpdate={handleUserUpdate}
               />
             }
           />

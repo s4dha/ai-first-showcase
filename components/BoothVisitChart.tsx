@@ -1,25 +1,27 @@
-
 import React from 'react';
-import { Visit } from '../types';
 import { BOOTH_IDS } from '../constants';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 
 interface BoothVisitChartProps {
-  visits: Visit[];
+  popularity: Record<string, number>;
 }
 
-const BoothVisitChart: React.FC<BoothVisitChartProps> = ({ visits }) => {
+const BoothVisitChart: React.FC<BoothVisitChartProps> = ({ popularity }) => {
+  // Convert popularity record to array format for the chart
   const visitCounts = BOOTH_IDS.map(boothId => {
-    const count = visits.filter(visit => visit.boothId === boothId).length;
+    const count = popularity[boothId] || 0;
     return { name: boothId, visits: count };
   });
 
   const colors = ['#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe'];
 
-  if (visits.length === 0) {
+  // Check if we have any visits
+  const totalVisits = Object.values(popularity).reduce((sum: number, count: number) => sum + count, 0);
+  
+  if (totalVisits === 0) {
     return (
         <div className="flex items-center justify-center h-full text-gray-500">
-            <p>Scan your first booth to see data here!</p>
+            <p>No booth visits recorded yet!</p>
         </div>
     );
   }
