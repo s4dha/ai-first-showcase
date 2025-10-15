@@ -193,7 +193,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         <p className="text-center text-gray-400 mb-8">Log your journey, share your thoughts.</p>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-300">Full Name</label>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-300">
+              Full Name
+            </label>
+
+            <p className="mt-1 text-sm text-yellow-300 mb-2">
+              This name will be used for prize redemption. Please ensure you provide your full name accurately to avoid any issues.
+            </p>
+
             <input
               id="name"
               type="text"
