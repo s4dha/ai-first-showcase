@@ -6,10 +6,11 @@ import * as dataService from '../services/dataService';
 import FeedbackModal from './FeedbackModal';
 import Spinner from './Spinner';
 
+import jsQR from 'jsqr';
+import QRCode from 'qrcode';
+
 interface ScannerProps { user: User; }
 
-declare const jsQR: any;
-declare const QRCode: any;
 
 const Scanner: React.FC<ScannerProps> = ({ user }) => {
   const navigate = useNavigate();

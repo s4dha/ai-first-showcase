@@ -122,7 +122,12 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ visits, currentUser }) => {
 
         {/* --- Right: Top 30 Participants --- */}
         <div className="bg-gray-600/40 border border-gray-500/60 rounded-xl p-4">
-          <h4 className="text-lg font-semibold text-orange-400 mb-4">Top 30 Participants</h4>
+          <h4 className="text-lg font-semibold text-orange-400 mb-4">
+            Top 30 Participants
+            <br />
+            <span className="text-sm text-white font-normal">*First Come First Serve</span>
+          </h4>
+
           {topVisitors.length > 0 ? (
             <ul className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
               {topVisitors.map((visitor, index) => (

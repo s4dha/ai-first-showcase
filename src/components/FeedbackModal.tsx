@@ -3,15 +3,21 @@ import * as dataService from '../services/dataService';
 
 interface FeedbackModalProps {
   boothId: string;
-  onSubmit?: (rating: number, feedback: string) => void; // optional callback after successful save
+  onSubmit?: (rating: number, feedback: string) => void;
   onClose: () => void;
 }
 
-const Star: React.FC<{ filled: boolean; onClick: () => void; onMouseEnter?: () => void }> = ({ filled, onClick, onMouseEnter }) => (
+const Star: React.FC<{ filled: boolean; onClick: () => void; onMouseEnter?: () => void }> = ({
+  filled,
+  onClick,
+  onMouseEnter,
+}) => (
   <svg
     onClick={onClick}
     onMouseEnter={onMouseEnter}
-    className={`w-10 h-10 cursor-pointer transition-transform transform hover:scale-125 ${filled ? 'text-yellow-400' : 'text-gray-600'}`}
+    className={`w-10 h-10 cursor-pointer transition-transform transform hover:scale-125 ${
+      filled ? 'text-yellow-400' : 'text-gray-600'
+    }`}
     fill="currentColor"
     viewBox="0 0 20 20"
     role="img"
@@ -32,17 +38,18 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ boothId, onSubmit, onClos
     e.preventDefault();
     if (rating <= 0 || isSubmitting) return;
 
+    // Enforce minimum 20 characters
+    if (feedback.trim().length < 20) {
+      setErr('Feedback must be at least 20 characters long.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setErr(null);
 
-      // Use new signature: addVisit(boothId, rating, feedback)
       await dataService.addVisit(boothId, rating, feedback);
-
-      // optional callback for parent
       onSubmit?.(rating, feedback);
-
-      // close the modal
       onClose();
     } catch (e: any) {
       console.error(e);
@@ -51,17 +58,22 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ boothId, onSubmit, onClos
     }
   };
 
+  const remaining = feedback.trim().length;
+
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4"
-      onClick={() => { if (!isSubmitting) onClose(); }}
+      onClick={() => {
+        if (!isSubmitting) onClose();
+      }}
       role="dialog"
       aria-modal="true"
     >
       <div
         className="relative bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-8 border border-gray-700"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
+        {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
@@ -74,12 +86,15 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ boothId, onSubmit, onClos
           </svg>
         </button>
 
+        {/* Header */}
         <h2 className="text-2xl font-bold text-center mb-2">
           Feedback for <span className="text-purple-400">{boothId}</span>
         </h2>
         <p className="text-center text-gray-400 mb-6">Your feedback helps us improve!</p>
 
+        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Rating */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2 text-center">
               1. How would you rate this demo?
@@ -96,9 +111,12 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ boothId, onSubmit, onClos
             </div>
           </div>
 
+          {/* Feedback Text */}
           <div>
             <label htmlFor="feedback" className="block text-sm font-medium text-gray-300">
               2. How could you apply this solution to your use case?
+              <br />
+              <span className="text-xs text-gray-400">(Minimum 20 characters)</span>
             </label>
             <textarea
               id="feedback"
@@ -108,15 +126,19 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ boothId, onSubmit, onClos
               className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="e.g., Automate monthly reporting, improve data analysis..."
             />
+            <div className="flex justify-between text-xs text-gray-400 mt-1">
+              <span>{remaining < 20 ? `Need ${20 - remaining} more characters` : 'Ready to submit'}</span>
+              <span>{remaining}/20</span>
+            </div>
           </div>
 
-          {err && (
-            <p className="text-red-400 text-sm">{err}</p>
-          )}
+          {/* Error Message */}
+          {err && <p className="text-red-400 text-sm text-center">{err}</p>}
 
+          {/* Submit Button */}
           <button
             type="submit"
-            disabled={rating === 0 || isSubmitting}
+            disabled={rating === 0 || remaining < 20 || isSubmitting}
             className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-gray-900 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors"
           >
             {isSubmitting ? 'Submitting…' : 'Submit Feedback'}

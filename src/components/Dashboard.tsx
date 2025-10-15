@@ -99,7 +99,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, userVisits }) => {
                     </div>
                 </div>
                 <div className="md:col-span-2 bg-gray-800/50 rounded-2xl p-6 shadow-lg border border-gray-700 min-h-[300px]">
-                    <h3 className="text-xl font-semibold text-purple-400 mb-4">Booth Popularity</h3>
+                    <h3 className="text-xl font-semibold text-purple-400 mb-4">Booth Popularity By Visits</h3>
                     <BoothVisitChart popularity={boothPopularity} />
                 </div>
             </div>
