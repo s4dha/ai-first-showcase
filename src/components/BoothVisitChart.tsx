@@ -1,5 +1,5 @@
 import React from "react";
-import { BOOTH_IDS } from "../constants";
+import { BOOTH_IDS } from "../helpers/constants";
 import {
   BarChart,
   Bar,

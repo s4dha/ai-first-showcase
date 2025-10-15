@@ -4,8 +4,8 @@ import {
   collection, getDocs, query, where, increment,
   runTransaction, deleteDoc
 } from "firebase/firestore";
-import type { Division, User, Visit } from "../types";
-import { BOOTH_IDS } from "../constants";
+import type { Division, User, Visit } from "../helpers/types";
+import { BOOTH_IDS } from "../helpers/constants";
 
 const USER_CACHE_KEY = "showcase_user_cache";
 

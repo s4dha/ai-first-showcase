@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+        script-src 'self' 'nonce-abc123xyz' https://www.googletagmanager.com https://www.google-analytics.com https://us-assets.i.posthog.com;
+        connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://firebase.googleapis.com https://firebasestorage.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://us.i.posthog.com https://us-assets.i.posthog.com;
+        img-src 'self' https://www.google-analytics.com;
+      "
+    />
+    <link rel="icon" type="image/png" href="/websitelogo_new.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI-First SCG</title>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-LDNQN5RNVV"></script>
+    <script nonce="abc123xyz">
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-LDNQN5RNVV');
+    </script>
+    <script type="module" crossorigin src="/assets/index-DceZO_De.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BpLwEzW6.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

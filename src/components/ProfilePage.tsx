@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Division, User } from '../types';
-import { PRIZE_THRESHOLD, BOOTH_IDS, DIVISIONS } from '../constants';
+import { Division, User } from '../helpers/types';
+import { PRIZE_THRESHOLD, BOOTH_IDS, DIVISIONS } from '../helpers/constants';
 import * as dataService from '../services/dataService';
 import Spinner from './Spinner';
 

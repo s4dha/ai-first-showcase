@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User } from '../types';
-import { PRIZE_THRESHOLD } from '../constants';
+import { User } from '../helpers/types';
+import { PRIZE_THRESHOLD } from '../helpers/constants';
 import DigitalSticker from './DigitalSticker';
 import BoothVisitChart from './BoothVisitChart';
 import Leaderboard from './Leaderboard';

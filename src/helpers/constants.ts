@@ -1,5 +1,5 @@
 
-import { Division } from './types';
+import { Division } from './src/helpers/types';
 
 export const DIVISIONS: Division[] = [
 'Comms and Marketing',

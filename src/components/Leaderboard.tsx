@@ -1,7 +1,7 @@
 // src/components/Leaderboard.tsx
 import React from 'react';
-import { User, Visit, Division } from '../types';
-import { PRIZE_THRESHOLD } from '../constants';
+import { User, Visit, Division } from '../helpers/types';
+import { PRIZE_THRESHOLD } from '../helpers/constants';
 
 type BoothVisitorsAggregate = Record<
   string,

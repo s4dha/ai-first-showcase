@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User } from '../types';
-import { BOOTH_IDS, PRIZE_THRESHOLD } from '../constants';
+import { User } from '../helpers/types';
+import { BOOTH_IDS, PRIZE_THRESHOLD } from '../helpers/constants';
 import * as dataService from '../services/dataService';
 import FeedbackModal from './FeedbackModal';
 import Spinner from './Spinner';

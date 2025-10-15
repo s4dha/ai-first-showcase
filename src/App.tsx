@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, useNavigate, Outlet, useLocation } from 'react-router-dom';
-import { User, Visit, Division } from './types';
-import { DIVISIONS } from './constants';
+import { User, Visit, Division } from './helpers/types';
+import { DIVISIONS } from './helpers/constants';
 import * as dataService from './services/dataService';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
