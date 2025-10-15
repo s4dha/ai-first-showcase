@@ -98,7 +98,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ boothId, onSubmit, onClos
 
           <div>
             <label htmlFor="feedback" className="block text-sm font-medium text-gray-300">
-              2. How could you apply this to your work?
+              2. How could you apply this solution to your use case?
             </label>
             <textarea
               id="feedback"
