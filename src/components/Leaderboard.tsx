@@ -125,7 +125,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ visits, currentUser }) => {
           <h4 className="text-lg font-semibold text-orange-400 mb-4">
             Top 30 Participants
             <br />
-            <span className="text-sm text-white font-normal">*First Come First Serve</span>
+            <span className="text-sm text-white font-normal">To win $20 via GovWallet (First Come First Serve Basis)</span>
           </h4>
 
           {topVisitors.length > 0 ? (
