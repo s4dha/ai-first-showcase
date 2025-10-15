@@ -18,8 +18,9 @@ interface LeaderboardProps {
   currentUser: User;
 }
 
+const plural = (n: number, singular: string) => (n === 1 ? singular : `${singular}s`);
+
 const Leaderboard: React.FC<LeaderboardProps> = ({ visits, currentUser }) => {
-  // Normalize input (either Visit[] or booths aggregate) into flat Visit[]
   const normalizeToVisitArray = (input: Visit[] | BoothVisitorsAggregate): Visit[] => {
     if (Array.isArray(input)) return input;
     const out: Visit[] = [];
@@ -42,7 +43,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ visits, currentUser }) => {
 
   const flatVisits = normalizeToVisitArray(visits);
 
-  // Aggregate per user: name -> { name, division, booths: Set<string> }
   const visitorData = flatVisits.reduce(
     (acc: Record<string, { name: string; division: Division; booths: Set<string> }>, visit) => {
       if (!acc[visit.userName]) {
@@ -54,7 +54,6 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ visits, currentUser }) => {
     {}
   );
 
-  // Aggregate per booth: boothId -> { boothId, visitors: Set<string> }
   const boothData = flatVisits.reduce(
     (acc: Record<string, { boothId: string; visitors: Set<string> }>, visit) => {
       if (!acc[visit.boothId]) {
@@ -74,40 +73,35 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ visits, currentUser }) => {
     .map((b) => ({ ...b, count: b.visitors.size }))
     .sort((a, b) => b.count - a.count);
 
-  const topVisitors = sortedVisitors.slice(0, 5);
+  const topVisitors = sortedVisitors.slice(0, 30);
   const topBooths = sortedBooths.slice(0, 5);
-  const prizeWinners = sortedVisitors.filter((v) => v.count >= PRIZE_THRESHOLD);
   const totalParticipants = new Set(flatVisits.map((v) => v.userName)).size;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-6xl mx-auto px-4">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-        <div className="bg-gray-700/50 p-4 rounded-lg">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-center">
+        <div className="bg-gray-600/40 border border-gray-500/60 p-4 rounded-lg h-full">
           <p className="text-4xl font-bold text-indigo-400">{totalParticipants}</p>
           <p className="text-sm text-gray-400">Total Participants</p>
         </div>
-        <div className="bg-gray-700/50 p-4 rounded-lg">
+        <div className="bg-gray-600/40 border border-gray-500/60 p-4 rounded-lg h-full">
           <p className="text-4xl font-bold text-indigo-400">{topVisitors.length > 0 ? topVisitors[0].count : 0}</p>
           <p className="text-sm text-gray-400">Top Score</p>
         </div>
-        <div className="bg-gray-700/50 p-4 rounded-lg">
-          <p className="text-4xl font-bold text-indigo-400">{prizeWinners.length}</p>
-          <p className="text-sm text-gray-400">Prize Winners</p>
-        </div>
       </div>
 
-      {/* Main 3-column layout */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      {/* Main 2-column layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
         {/* --- Left: Top 5 Booths --- */}
-        <div>
-          <h4 className="text-lg font-semibold text-gray-300 mb-4">Top 5 Booths</h4>
+        <div className="bg-gray-600/40 border border-gray-500/60 rounded-xl p-4">
+          <h4 className="text-lg font-semibold text-orange-400 mb-4">Most Visited Booths</h4>
           {topBooths.length > 0 ? (
             <ul className="space-y-3">
               {topBooths.map((booth, index) => (
                 <li
                   key={booth.boothId}
-                  className="flex items-center justify-between p-3 rounded-md bg-gray-700/50"
+                  className="flex items-center justify-between p-3 rounded-md bg-gray-600/40 border border-gray-500/60"
                 >
                   <div className="flex items-center space-x-4">
                     <span className="font-bold text-lg text-gray-400">{index + 1}</span>
@@ -116,7 +110,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ visits, currentUser }) => {
                     </div>
                   </div>
                   <span className="font-bold text-lg text-purple-400">
-                    {booth.count} {booth.count === 1 ? 'visitor' : 'visitors'}
+                    {booth.count} {plural(booth.count, 'participant')}
                   </span>
                 </li>
               ))}
@@ -126,16 +120,18 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ visits, currentUser }) => {
           )}
         </div>
 
-        {/* --- Middle: Top 5 Visitors --- */}
-        <div>
-          <h4 className="text-lg font-semibold text-gray-300 mb-4">Top 5 Visitors</h4>
+        {/* --- Right: Top 30 Participants --- */}
+        <div className="bg-gray-600/40 border border-gray-500/60 rounded-xl p-4">
+          <h4 className="text-lg font-semibold text-orange-400 mb-4">Top 30 Participants</h4>
           {topVisitors.length > 0 ? (
-            <ul className="space-y-3">
+            <ul className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
               {topVisitors.map((visitor, index) => (
                 <li
                   key={visitor.name}
                   className={`flex items-center justify-between p-3 rounded-md ${
-                    visitor.name === currentUser.name ? 'bg-purple-600/30 border border-purple-500' : 'bg-gray-700/50'
+                    visitor.name === currentUser.name
+                      ? 'bg-purple-600/30 border border-purple-500'
+                      : 'bg-gray-600/40 border border-gray-500/60'
                   }`}
                 >
                   <div className="flex items-center space-x-4">
@@ -145,37 +141,14 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ visits, currentUser }) => {
                       <p className="text-xs text-gray-400">{visitor.division}</p>
                     </div>
                   </div>
-                  <span className="font-bold text-lg text-purple-400">{visitor.count} booths</span>
+                  <span className="font-bold text-lg text-purple-400">
+                    {visitor.count} {plural(visitor.count, 'booth')}
+                  </span>
                 </li>
               ))}
             </ul>
           ) : (
             <p className="text-gray-500 text-center py-4">No visits recorded yet.</p>
-          )}
-        </div>
-
-        {/* --- Right: Prize Winners --- */}
-        <div>
-          <h4 className="text-lg font-semibold text-gray-300 mb-4">Prize Winners ({`>= ${PRIZE_THRESHOLD} booths`})</h4>
-          {prizeWinners.length > 0 ? (
-            <ul className="space-y-2 h-48 overflow-y-auto pr-2">
-              {prizeWinners.map((winner) => (
-                <li
-                  key={winner.name}
-                  className={`flex items-center space-x-3 p-2 rounded-md ${
-                    winner.name === currentUser.name ? 'bg-purple-600/30' : 'bg-gray-700/50'
-                  }`}
-                >
-                  <span className="text-yellow-400">🏆</span>
-                  <div>
-                    <p className="font-medium text-white">{winner.name}</p>
-                    <p className="text-xs text-gray-400">{winner.division}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-500 text-center py-4">No prize winners yet.</p>
           )}
         </div>
       </div>
