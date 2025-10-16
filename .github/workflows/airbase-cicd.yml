@@ -38,6 +38,8 @@ jobs:
       - name: Deploy
         run: npx @airbase/airbase-cli deploy --output deploy.env --yes
         env:
+          AIRBASE_ACCESS_KEY_ID: ${{ secrets.AIRBASE_ACCESS_KEY_ID }}
+          AIRBASE_SECRET_ACCESS_KEY: ${{ secrets.AIRBASE_SECRET_ACCESS_KEY }}
           DYNAMIC_ENVIRONMENT_URL: ${{ env.DYNAMIC_ENVIRONMENT_URL }}
 
       - name: Production Environment Info
@@ -72,6 +74,8 @@ jobs:
       - name: Deploy Review
         run: npx @airbase/airbase-cli deploy --output deploy.env --yes
         env:
+          AIRBASE_ACCESS_KEY_ID: ${{ secrets.AIRBASE_ACCESS_KEY_ID }}
+          AIRBASE_SECRET_ACCESS_KEY: ${{ secrets.AIRBASE_SECRET_ACCESS_KEY }}
           DYNAMIC_ENVIRONMENT_URL: ${{ env.DYNAMIC_ENVIRONMENT_URL }}
           CI_COMMIT_REF_SLUG: ${{ github.ref_name }}
 
