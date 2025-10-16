@@ -35,6 +35,9 @@ jobs:
         run: |
           zip -r airbase.zip . -i build
 
+      - name: Debug env
+        run: env | grep AIRBASE || echo "No AIRBASE vars found"
+
       - name: Deploy
         run: npx @airbase/airbase-cli deploy --output deploy.env --yes
         env:
@@ -70,6 +73,9 @@ jobs:
       - name: Package for Airbase
         run: |
           zip -r airbase.zip . -i build
+
+      - name: Debug env
+        run: env | grep AIRBASE || echo "No AIRBASE vars found"
 
       - name: Deploy Review
         run: npx @airbase/airbase-cli deploy --output deploy.env --yes
