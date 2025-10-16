@@ -28,6 +28,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build project
+        run: npm run build
+
+      - name: Package for Airbase
+        run: |
+          zip -r airbase.zip build
+
       - name: Deploy
         run: npx @airbase/airbase-cli deploy --output deploy.env --yes
         env:
@@ -37,6 +44,7 @@ jobs:
         run: echo "Production environment deployed at $DYNAMIC_ENVIRONMENT_URL"
         env:
           DYNAMIC_ENVIRONMENT_URL: ${{ env.DYNAMIC_ENVIRONMENT_URL }}
+
 
   review:
     name: Deploy Review Environment
@@ -54,6 +62,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build project
+        run: npm run build
+
+      - name: Package for Airbase
+        run: |
+          zip -r airbase.zip build
+
       - name: Deploy Review
         run: npx @airbase/airbase-cli deploy --output deploy.env --yes
         env:
@@ -70,6 +85,7 @@ jobs:
         with:
           name: airbase-link
           path: .airbase/airbase.link.json
+
 
   stop_review:
     name: Stop Review Environment
