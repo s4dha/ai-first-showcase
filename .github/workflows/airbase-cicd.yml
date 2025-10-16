@@ -5,6 +5,11 @@ on:
     branches:
       - '**'
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to destroy (used for stop_review job)'
+        required: false
+        type: string
 
 jobs:
   deploy:
@@ -69,7 +74,7 @@ jobs:
   stop_review:
     name: Stop Review Environment
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.branch != ''
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -83,14 +88,3 @@ jobs:
         run: npx @airbase/airbase-cli destroy "$CI_COMMIT_REF_SLUG" --yes
         env:
           CI_COMMIT_REF_SLUG: ${{ github.event.inputs.branch }}
-
-    # make this job manually runnable like `when: manual`
-    permissions:
-      contents: read
-
-    # allow passing branch name when running manually
-    inputs:
-      branch:
-        description: 'Branch to destroy'
-        required: true
-        type: string
