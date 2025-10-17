@@ -1,7 +1,5 @@
 {
-  "name": [
-    "AI-First Showcase"
-  ],
+  "name": "AI-First Showcase",
   "framework": "other",
   "handle": "aiccelerate/ai-first-showcase",
   "port": 3000,
