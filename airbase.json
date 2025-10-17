@@ -1,5 +1,8 @@
-{
-  "framework": "container",
-  "handle": "aiccelerate/ai-first-showcase",
-  "port": 3000
-}
+ {
+   name: "my-project"
+    "framework": "nextjs-standalone",
+    "scripts": {
+      "build": "npm run build",
+      "start": "node server.js"
+    },
+ }
