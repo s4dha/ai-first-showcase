@@ -1,5 +1,5 @@
  {
-   "name": "aiccelerate/ai-first-showcase",
+   "name": "ai-first-showcase",
     "framework": "nextjs-standalone",
     "scripts": {
       "build": "npm run build",
