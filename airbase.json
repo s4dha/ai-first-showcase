@@ -1,9 +1,11 @@
-{
-  "name": "AI-First Showcase",
-  "framework": "other",
-  "handle": "aiccelerate/ai-first-showcase",
-  "port": 3000,
-  "scripts": {
-    "build": "npm run build"
+  {
+    "name": "my-airbase-app",
+    "framework": "nextjs-standalone",
+    "scripts": {
+      "build": "npm run build",
+      "start": "npm run dev"
+    },
+   "include": [
+     "public/**/*"
+   ]
   }
-}
