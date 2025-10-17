@@ -1,7 +1,8 @@
 {
   "name": "AI-First Showcase",
+  "projectId": "01K7JFTSX6W3KE3MH86RD6VP0",
   "framework": "other",
-  "handle": "ai-first-showcase",
+  "handle": "aiccelerate/ai-first-showcase",
   "port": 3000,
   "scripts": {
     "build": "npm run build"
