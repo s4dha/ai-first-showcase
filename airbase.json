@@ -1,0 +1,5 @@
+{
+  "framework": "container",
+  "handle": "aiccelerate/ai-first-showcase",
+  "port": 3000
+}
