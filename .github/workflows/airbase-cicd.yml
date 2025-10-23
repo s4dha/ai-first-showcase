@@ -16,6 +16,7 @@ jobs:
     name: Deploy to Production
     runs-on: ubuntu-latest
     if: github.ref_name == 'main'
+    environment: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,17 +33,29 @@ jobs:
         run: npm run build
 
       - name: Package for Airbase
-        run: |
-          zip -r airbase.zip . -i build
+        run: zip -r airbase.zip . -i build
 
+      # --- Ensure RC file exists so the CLI knows your tenant/region ---
+      - name: Setup Airbase RC
+        run: |
+          mkdir -p ~/.airbase
+          printf "%s" "$AIRBASE_RC" > ~/.airbase/airbaserc
+        env:
+          AIRBASE_RC: ${{ secrets.AIRBASE_RC }}
+
+      # --- Optional: quick check ---
       - name: Debug env
         run: env | grep AIRBASE || echo "No AIRBASE vars found"
 
-      - name: Deploy
-        run: npx @airbase/airbase-cli deploy --output deploy.env --yes
+      - name: Deploy to Production
+        run: npx @airbase/airbase-cli@2.18.4 deploy \
+              --project "$AIRBASE_PROJECT_HANDLE" \
+              --output deploy.env \
+              --yes
         env:
           AIRBASE_ACCESS_KEY_ID: ${{ secrets.AIRBASE_ACCESS_KEY_ID }}
           AIRBASE_SECRET_ACCESS_KEY: ${{ secrets.AIRBASE_SECRET_ACCESS_KEY }}
+          AIRBASE_PROJECT_HANDLE: ${{ secrets.AIRBASE_PROJECT_HANDLE }}
           DYNAMIC_ENVIRONMENT_URL: ${{ env.DYNAMIC_ENVIRONMENT_URL }}
 
       - name: Production Environment Info
@@ -71,17 +84,25 @@ jobs:
         run: npm run build
 
       - name: Package for Airbase
-        run: |
-          zip -r airbase.zip . -i build
+        run: zip -r airbase.zip . -i build
 
-      - name: Debug env
-        run: env | grep AIRBASE || echo "No AIRBASE vars found"
+      - name: Setup Airbase RC
+        run: |
+          mkdir -p ~/.airbase
+          printf "%s" "$AIRBASE_RC" > ~/.airbase/airbaserc
+        env:
+          AIRBASE_RC: ${{ secrets.AIRBASE_RC }}
 
       - name: Deploy Review
-        run: npx @airbase/airbase-cli deploy --output deploy.env --yes
+        run: npx @airbase/airbase-cli@2.18.4 deploy \
+              --project "$AIRBASE_PROJECT_HANDLE" \
+              --branch "$CI_COMMIT_REF_SLUG" \
+              --output deploy.env \
+              --yes
         env:
           AIRBASE_ACCESS_KEY_ID: ${{ secrets.AIRBASE_ACCESS_KEY_ID }}
           AIRBASE_SECRET_ACCESS_KEY: ${{ secrets.AIRBASE_SECRET_ACCESS_KEY }}
+          AIRBASE_PROJECT_HANDLE: ${{ secrets.AIRBASE_PROJECT_HANDLE }}
           DYNAMIC_ENVIRONMENT_URL: ${{ env.DYNAMIC_ENVIRONMENT_URL }}
           CI_COMMIT_REF_SLUG: ${{ github.ref_name }}
 
@@ -111,6 +132,9 @@ jobs:
           node-version: 20
 
       - name: Stop Review
-        run: npx @airbase/airbase-cli destroy "$CI_COMMIT_REF_SLUG" --yes
+        run: npx @airbase/airbase-cli@2.18.4 destroy "$CI_COMMIT_REF_SLUG" --yes
         env:
           CI_COMMIT_REF_SLUG: ${{ github.event.inputs.branch }}
+          AIRBASE_ACCESS_KEY_ID: ${{ secrets.AIRBASE_ACCESS_KEY_ID }}
+          AIRBASE_SECRET_ACCESS_KEY: ${{ secrets.AIRBASE_SECRET_ACCESS_KEY }}
+          AIRBASE_RC: ${{ secrets.AIRBASE_RC }}
