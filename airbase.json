@@ -1,8 +1,5 @@
  {
    "name": "ai-first-showcase",
-    "framework": "nextjs-standalone",
-    "scripts": {
-      "build": "npm run build",
-      "start": "npm run dev"
-    }
+    "framework": "aiccelerate/ai-first-showcase",
+    "port": 3000
  }
