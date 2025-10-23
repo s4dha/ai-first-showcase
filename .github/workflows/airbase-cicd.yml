@@ -16,7 +16,6 @@ jobs:
     name: Deploy to Production
     runs-on: ubuntu-latest
     if: github.ref_name == 'main'
-    environment: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,26 +32,22 @@ jobs:
         run: npm run build
 
       - name: Package for Airbase
-        run: zip -r airbase.zip . -i build
-
-      - name: Setup Airbase RC
         run: |
-          mkdir -p ~/.airbase
-          printf "%s" "$AIRBASE_RC" > ~/.airbase/airbaserc
-        env:
-          AIRBASE_RC: ${{ secrets.AIRBASE_RC }}
+          zip -r airbase.zip . -i build
+      - name: Debug env
+        run: env | grep AIRBASE || echo "No AIRBASE vars found"
 
-      - name: Deploy to Production
-        run: |
-          echo "🚀 Deploying production build..."
-          npx @airbase/airbase-cli@2.18.4 deploy --output deploy.env --yes
+      - name: Deploy
+        run: npx @airbase/airbase-cli deploy --output deploy.env --yes
         env:
           AIRBASE_ACCESS_KEY_ID: ${{ secrets.AIRBASE_ACCESS_KEY_ID }}
           AIRBASE_SECRET_ACCESS_KEY: ${{ secrets.AIRBASE_SECRET_ACCESS_KEY }}
-          AIRBASE_RC: ${{ secrets.AIRBASE_RC }}
+          DYNAMIC_ENVIRONMENT_URL: ${{ env.DYNAMIC_ENVIRONMENT_URL }}
 
       - name: Production Environment Info
-        run: echo "✅ Production environment deployed successfully!"
+        run: echo "Production environment deployed at $DYNAMIC_ENVIRONMENT_URL"
+        env:
+          DYNAMIC_ENVIRONMENT_URL: ${{ env.DYNAMIC_ENVIRONMENT_URL }}
 
 
   review:
@@ -75,30 +70,23 @@ jobs:
         run: npm run build
 
       - name: Package for Airbase
-        run: zip -r airbase.zip . -i build
-
-      - name: Setup Airbase RC
         run: |
-          mkdir -p ~/.airbase
-          printf "%s" "$AIRBASE_RC" > ~/.airbase/airbaserc
-        env:
-          AIRBASE_RC: ${{ secrets.AIRBASE_RC }}
+          zip -r airbase.zip . -i build
+      - name: Debug env
+        run: env | grep AIRBASE || echo "No AIRBASE vars found"
 
-      - name: Deploy Review Environment
-        run: |
-          echo "🚀 Deploying review environment for branch: $CI_COMMIT_REF_SLUG"
-          npx @airbase/airbase-cli@2.18.4 deploy --output deploy.env --yes
+      - name: Deploy Review
+        run: npx @airbase/airbase-cli deploy --output deploy.env --yes
         env:
           AIRBASE_ACCESS_KEY_ID: ${{ secrets.AIRBASE_ACCESS_KEY_ID }}
           AIRBASE_SECRET_ACCESS_KEY: ${{ secrets.AIRBASE_SECRET_ACCESS_KEY }}
-          AIRBASE_RC: ${{ secrets.AIRBASE_RC }}
+          DYNAMIC_ENVIRONMENT_URL: ${{ env.DYNAMIC_ENVIRONMENT_URL }}
           CI_COMMIT_REF_SLUG: ${{ github.ref_name }}
 
       - name: Save Airbase Link Artifact
         run: |
           mkdir -p .airbase
           echo '{"environment": "${{ github.ref_name }}"}' > .airbase/airbase.link.json
-
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -119,19 +107,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Setup Airbase RC
-        run: |
-          mkdir -p ~/.airbase
-          printf "%s" "$AIRBASE_RC" > ~/.airbase/airbaserc
-        env:
-          AIRBASE_RC: ${{ secrets.AIRBASE_RC }}
-
       - name: Stop Review
-        run: |
-          echo "🧹 Destroying review environment for branch: $CI_COMMIT_REF_SLUG"
-          npx @airbase/airbase-cli@2.18.4 destroy --yes
+        run: npx @airbase/airbase-cli destroy "$CI_COMMIT_REF_SLUG" --yes
         env:
-          AIRBASE_ACCESS_KEY_ID: ${{ secrets.AIRBASE_ACCESS_KEY_ID }}
-          AIRBASE_SECRET_ACCESS_KEY: ${{ secrets.AIRBASE_SECRET_ACCESS_KEY }}
-          AIRBASE_RC: ${{ secrets.AIRBASE_RC }}
           CI_COMMIT_REF_SLUG: ${{ github.event.inputs.branch }}
