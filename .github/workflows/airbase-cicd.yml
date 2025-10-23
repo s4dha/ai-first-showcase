@@ -35,7 +35,6 @@ jobs:
       - name: Package for Airbase
         run: zip -r airbase.zip . -i build
 
-      # --- Ensure RC file exists so the CLI knows your tenant/region ---
       - name: Setup Airbase RC
         run: |
           mkdir -p ~/.airbase
@@ -43,25 +42,22 @@ jobs:
         env:
           AIRBASE_RC: ${{ secrets.AIRBASE_RC }}
 
-      # --- Optional: quick check ---
-      - name: Debug env
-        run: env | grep AIRBASE || echo "No AIRBASE vars found"
-
       - name: Deploy to Production
-        run: npx @airbase/airbase-cli@2.18.4 deploy \
-              --project "$AIRBASE_PROJECT_HANDLE" \
-              --output deploy.env \
-              --yes
+        run: |
+          echo "🚀 Deploying production build..."
+          npx @airbase/airbase-cli@2.18.4 deploy \
+            --project "$AIRBASE_PROJECT_HANDLE" \
+            --branch "production" \
+            --output deploy.env \
+            --yes
         env:
           AIRBASE_ACCESS_KEY_ID: ${{ secrets.AIRBASE_ACCESS_KEY_ID }}
           AIRBASE_SECRET_ACCESS_KEY: ${{ secrets.AIRBASE_SECRET_ACCESS_KEY }}
           AIRBASE_PROJECT_HANDLE: ${{ secrets.AIRBASE_PROJECT_HANDLE }}
-          DYNAMIC_ENVIRONMENT_URL: ${{ env.DYNAMIC_ENVIRONMENT_URL }}
+          AIRBASE_RC: ${{ secrets.AIRBASE_RC }}
 
       - name: Production Environment Info
-        run: echo "Production environment deployed at $DYNAMIC_ENVIRONMENT_URL"
-        env:
-          DYNAMIC_ENVIRONMENT_URL: ${{ env.DYNAMIC_ENVIRONMENT_URL }}
+        run: echo "✅ Production environment deployed successfully!"
 
 
   review:
@@ -93,17 +89,20 @@ jobs:
         env:
           AIRBASE_RC: ${{ secrets.AIRBASE_RC }}
 
-      - name: Deploy Review
-        run: npx @airbase/airbase-cli@2.18.4 deploy \
-              --project "$AIRBASE_PROJECT_HANDLE" \
-              --branch "$CI_COMMIT_REF_SLUG" \
-              --output deploy.env \
-              --yes
+      - name: Deploy Review Environment
+        run: |
+          SAFE_ENV=$(echo "${CI_COMMIT_REF_SLUG}" | tr '[:upper:]' '[:lower:]' | sed 's#[^a-z0-9-]#-#g')
+          echo "Deploying review environment: $SAFE_ENV"
+          npx @airbase/airbase-cli@2.18.4 deploy \
+            --project "$AIRBASE_PROJECT_HANDLE" \
+            --branch "$SAFE_ENV" \
+            --output deploy.env \
+            --yes
         env:
           AIRBASE_ACCESS_KEY_ID: ${{ secrets.AIRBASE_ACCESS_KEY_ID }}
           AIRBASE_SECRET_ACCESS_KEY: ${{ secrets.AIRBASE_SECRET_ACCESS_KEY }}
           AIRBASE_PROJECT_HANDLE: ${{ secrets.AIRBASE_PROJECT_HANDLE }}
-          DYNAMIC_ENVIRONMENT_URL: ${{ env.DYNAMIC_ENVIRONMENT_URL }}
+          AIRBASE_RC: ${{ secrets.AIRBASE_RC }}
           CI_COMMIT_REF_SLUG: ${{ github.ref_name }}
 
       - name: Save Airbase Link Artifact
@@ -131,10 +130,21 @@ jobs:
         with:
           node-version: 20
 
-      - name: Stop Review
-        run: npx @airbase/airbase-cli@2.18.4 destroy "$CI_COMMIT_REF_SLUG" --yes
+      - name: Setup Airbase RC
+        run: |
+          mkdir -p ~/.airbase
+          printf "%s" "$AIRBASE_RC" > ~/.airbase/airbaserc
         env:
-          CI_COMMIT_REF_SLUG: ${{ github.event.inputs.branch }}
+          AIRBASE_RC: ${{ secrets.AIRBASE_RC }}
+
+      - name: Stop Review
+        run: |
+          SAFE_ENV=$(echo "${CI_COMMIT_REF_SLUG}" | tr '[:upper:]' '[:lower:]' | sed 's#[^a-z0-9-]#-#g')
+          echo "🧹 Destroying review environment: $SAFE_ENV"
+          npx @airbase/airbase-cli@2.18.4 destroy "$SAFE_ENV" --yes
+        env:
           AIRBASE_ACCESS_KEY_ID: ${{ secrets.AIRBASE_ACCESS_KEY_ID }}
           AIRBASE_SECRET_ACCESS_KEY: ${{ secrets.AIRBASE_SECRET_ACCESS_KEY }}
+          AIRBASE_PROJECT_HANDLE: ${{ secrets.AIRBASE_PROJECT_HANDLE }}
           AIRBASE_RC: ${{ secrets.AIRBASE_RC }}
+          CI_COMMIT_REF_SLUG: ${{ github.event.inputs.branch }}
