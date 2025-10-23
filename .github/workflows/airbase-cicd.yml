@@ -46,14 +46,12 @@ jobs:
         run: |
           echo "🚀 Deploying production build..."
           npx @airbase/airbase-cli@2.18.4 deploy \
-            --project "$AIRBASE_PROJECT_HANDLE" \
             --branch "production" \
             --output deploy.env \
             --yes
         env:
           AIRBASE_ACCESS_KEY_ID: ${{ secrets.AIRBASE_ACCESS_KEY_ID }}
           AIRBASE_SECRET_ACCESS_KEY: ${{ secrets.AIRBASE_SECRET_ACCESS_KEY }}
-          AIRBASE_PROJECT_HANDLE: ${{ secrets.AIRBASE_PROJECT_HANDLE }}
           AIRBASE_RC: ${{ secrets.AIRBASE_RC }}
 
       - name: Production Environment Info
@@ -92,16 +90,14 @@ jobs:
       - name: Deploy Review Environment
         run: |
           SAFE_ENV=$(echo "${CI_COMMIT_REF_SLUG}" | tr '[:upper:]' '[:lower:]' | sed 's#[^a-z0-9-]#-#g')
-          echo "Deploying review environment: $SAFE_ENV"
+          echo "🚀 Deploying review environment: $SAFE_ENV"
           npx @airbase/airbase-cli@2.18.4 deploy \
-            --project "$AIRBASE_PROJECT_HANDLE" \
             --branch "$SAFE_ENV" \
             --output deploy.env \
             --yes
         env:
           AIRBASE_ACCESS_KEY_ID: ${{ secrets.AIRBASE_ACCESS_KEY_ID }}
           AIRBASE_SECRET_ACCESS_KEY: ${{ secrets.AIRBASE_SECRET_ACCESS_KEY }}
-          AIRBASE_PROJECT_HANDLE: ${{ secrets.AIRBASE_PROJECT_HANDLE }}
           AIRBASE_RC: ${{ secrets.AIRBASE_RC }}
           CI_COMMIT_REF_SLUG: ${{ github.ref_name }}
 
@@ -145,6 +141,5 @@ jobs:
         env:
           AIRBASE_ACCESS_KEY_ID: ${{ secrets.AIRBASE_ACCESS_KEY_ID }}
           AIRBASE_SECRET_ACCESS_KEY: ${{ secrets.AIRBASE_SECRET_ACCESS_KEY }}
-          AIRBASE_PROJECT_HANDLE: ${{ secrets.AIRBASE_PROJECT_HANDLE }}
           AIRBASE_RC: ${{ secrets.AIRBASE_RC }}
           CI_COMMIT_REF_SLUG: ${{ github.event.inputs.branch }}
