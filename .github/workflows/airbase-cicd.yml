@@ -45,10 +45,7 @@ jobs:
       - name: Deploy to Production
         run: |
           echo "🚀 Deploying production build..."
-          npx @airbase/airbase-cli@2.18.4 deploy \
-            --branch "production" \
-            --output deploy.env \
-            --yes
+          npx @airbase/airbase-cli@2.18.4 deploy --output deploy.env --yes
         env:
           AIRBASE_ACCESS_KEY_ID: ${{ secrets.AIRBASE_ACCESS_KEY_ID }}
           AIRBASE_SECRET_ACCESS_KEY: ${{ secrets.AIRBASE_SECRET_ACCESS_KEY }}
@@ -89,12 +86,8 @@ jobs:
 
       - name: Deploy Review Environment
         run: |
-          SAFE_ENV=$(echo "${CI_COMMIT_REF_SLUG}" | tr '[:upper:]' '[:lower:]' | sed 's#[^a-z0-9-]#-#g')
-          echo "🚀 Deploying review environment: $SAFE_ENV"
-          npx @airbase/airbase-cli@2.18.4 deploy \
-            --branch "$SAFE_ENV" \
-            --output deploy.env \
-            --yes
+          echo "🚀 Deploying review environment for branch: $CI_COMMIT_REF_SLUG"
+          npx @airbase/airbase-cli@2.18.4 deploy --output deploy.env --yes
         env:
           AIRBASE_ACCESS_KEY_ID: ${{ secrets.AIRBASE_ACCESS_KEY_ID }}
           AIRBASE_SECRET_ACCESS_KEY: ${{ secrets.AIRBASE_SECRET_ACCESS_KEY }}
@@ -135,9 +128,8 @@ jobs:
 
       - name: Stop Review
         run: |
-          SAFE_ENV=$(echo "${CI_COMMIT_REF_SLUG}" | tr '[:upper:]' '[:lower:]' | sed 's#[^a-z0-9-]#-#g')
-          echo "🧹 Destroying review environment: $SAFE_ENV"
-          npx @airbase/airbase-cli@2.18.4 destroy "$SAFE_ENV" --yes
+          echo "🧹 Destroying review environment for branch: $CI_COMMIT_REF_SLUG"
+          npx @airbase/airbase-cli@2.18.4 destroy --yes
         env:
           AIRBASE_ACCESS_KEY_ID: ${{ secrets.AIRBASE_ACCESS_KEY_ID }}
           AIRBASE_SECRET_ACCESS_KEY: ${{ secrets.AIRBASE_SECRET_ACCESS_KEY }}
