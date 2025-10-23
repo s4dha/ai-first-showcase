@@ -16,7 +16,7 @@ const DigitalSticker: React.FC<DigitalStickerProps> = ({ count }) => {
               {count}
             </p>
             <p className="text-sm text-gray-400 tracking-wider uppercase">
-              Booths Visited
+              Booths Visits
             </p>
           </div>
         </div>
